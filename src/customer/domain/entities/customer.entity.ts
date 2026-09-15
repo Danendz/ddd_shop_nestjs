@@ -1,4 +1,5 @@
 import { AggregateRoot } from '../../../shared/domain/aggregate-root.js';
+import { CustomerRegisteredEvent } from '../events/customer-registered.event.js';
 import { CustomerId } from '../value-objects/customer-id.vo.js';
 import { Email } from '../value-objects/email.vo.js';
 import { Phone } from '../value-objects/phone.vo.js';
@@ -46,7 +47,7 @@ export class Customer extends AggregateRoot {
     const id = CustomerId.generate();
     const now = new Date();
 
-    return new Customer({
+    const customer = new Customer({
       id,
       email: Email.create(email),
       firstName,
@@ -56,6 +57,12 @@ export class Customer extends AggregateRoot {
       updatedAt: now,
       isActive: true,
     });
+
+    customer.apply(
+      new CustomerRegisteredEvent(id.getValue(), email, firstName),
+    );
+
+    return customer;
   }
 
   static reconstitute(props: CustomerProps): Customer {

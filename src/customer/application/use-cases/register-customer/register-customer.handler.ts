@@ -1,4 +1,4 @@
-import { ICommandHandler, CommandHandler } from '@nestjs/cqrs';
+import { ICommandHandler, CommandHandler, EventPublisher } from '@nestjs/cqrs';
 import { RegisterCustomerCommand } from './register-customer.command.js';
 import { Customer } from '../../../domain/entities/customer.entity.js';
 import { Inject } from '@nestjs/common';
@@ -17,6 +17,7 @@ export class RegisterCustomerHandler implements ICommandHandler<RegisterCustomer
   constructor(
     @Inject(CUSTOMER_REPOSITORY)
     private readonly customerRepository: CustomerRepository,
+    private readonly eventPublisher: EventPublisher,
   ) {}
 
   async execute(command: RegisterCustomerCommand): Promise<void> {
@@ -31,13 +32,17 @@ export class RegisterCustomerHandler implements ICommandHandler<RegisterCustomer
       );
     }
 
-    const customer = Customer.register(
-      command.email,
-      command.firstName,
-      command.lastName,
-      null,
+    const customer = this.eventPublisher.mergeObjectContext(
+      Customer.register(
+        command.email,
+        command.firstName,
+        command.lastName,
+        null,
+      ),
     );
 
     await this.customerRepository.save(customer);
+
+    customer.commit();
   }
 }
